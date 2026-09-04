@@ -6,6 +6,7 @@
 <title>Vidalyse — Analyse IA de vos vidéos YouTube</title>
 <meta name="description" content="Colle un lien YouTube, Vidalyse télécharge, transcrit et analyse la vidéo pour toi. Gratuit, et ça reste chez toi si tu veux.">
 <link rel="icon" type="image/png" href="favicon.png">
+<noscript><style>body{visibility:visible !important}</style></noscript>
 <style>
   :root {
     --background: #0b0c1c;
@@ -28,7 +29,9 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     line-height: 1.5;
     -webkit-font-smoothing: antialiased;
+    visibility: hidden;
   }
+  body.i18n-ready { visibility: visible; }
   a { color: inherit; text-decoration: none; }
   img { max-width: 100%; display: block; }
   .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
@@ -246,12 +249,12 @@
       <img class="logo-full" src="logo.png" alt="Vidalyse">
     </a>
     <div class="nav-links">
-      <a href="#fonctionnalites">Fonctionnalités</a>
-      <a href="#comment-ca-marche">Comment ça marche</a>
-      <a href="#confidentialite">Confidentialité</a>
-      <a href="#lyra">Lyra</a>
+      <a href="#fonctionnalites" data-i18n="nav.features">Fonctionnalités</a>
+      <a href="#comment-ca-marche" data-i18n="nav.how">Comment ça marche</a>
+      <a href="#confidentialite" data-i18n="nav.privacy">Confidentialité</a>
+      <a href="#lyra" data-i18n="nav.lyra">Lyra</a>
     </div>
-    <a class="btn btn-primary" href="#cta">Essayer gratuitement</a>
+    <a class="btn btn-primary" href="#cta" data-i18n="nav.cta">Essayer gratuitement</a>
   </nav>
 </header>
 
@@ -259,12 +262,12 @@
 
   <section class="hero" style="border-top: none; padding-top: 72px;">
     <div class="wrap">
-      <div class="badge reveal"><span class="dot"></span> Gratuit. Pas de CB. Pas d'abonnement caché.</div>
-      <h1 class="reveal" style="--d:1">Colle un lien YouTube.<br><span class="gradient-text">Vidalyse fait le reste.</span></h1>
-      <p class="lead reveal" style="--d:2">Téléchargement, transcription, résumé, points forts, hook, potentiel Shorts... et un assistant pour en discuter. Tu peux même garder tout ça en local si t'aimes pas partager.</p>
+      <div class="badge reveal"><span class="dot"></span> <span data-i18n="hero.badge">Gratuit. Pas de CB. Pas d'abonnement caché.</span></div>
+      <h1 class="reveal" style="--d:1" data-i18n="hero.title">Colle un lien YouTube.<br><span class="gradient-text">Vidalyse fait le reste.</span></h1>
+      <p class="lead reveal" style="--d:2" data-i18n="hero.lead">Téléchargement, transcription, résumé, points forts, hook, potentiel Shorts... et un assistant pour en discuter. Tu peux même garder tout ça en local si t'aimes pas partager.</p>
       <div class="hero-actions reveal" style="--d:3">
-        <a class="btn btn-primary" href="#cta">Essayer gratuitement</a>
-        <a class="btn btn-ghost" href="#comment-ca-marche">Voir comment ça marche</a>
+        <a class="btn btn-primary" href="#cta" data-i18n="nav.cta">Essayer gratuitement</a>
+        <a class="btn btn-ghost" href="#comment-ca-marche" data-i18n="hero.cta2">Voir comment ça marche</a>
       </div>
       <div class="hero-logo-wrap reveal" style="--d:4">
         <img class="hero-logo" src="logo.png" alt="Vidalyse">
@@ -275,55 +278,55 @@
   <section id="fonctionnalites">
     <div class="wrap">
       <div class="section-head reveal">
-        <p class="eyebrow">Fonctionnalités</p>
-        <h2>Ce qu'il y a sous le capot</h2>
-        <p>Un lien collé, une vidéo décortiquée. Pas de manip en plus.</p>
+        <p class="eyebrow" data-i18n="features.eyebrow">Fonctionnalités</p>
+        <h2 data-i18n="features.title">Ce qu'il y a sous le capot</h2>
+        <p data-i18n="features.sub">Un lien collé, une vidéo décortiquée. Pas de manip en plus.</p>
       </div>
       <div class="grid">
         <div class="card reveal" style="--d:0">
           <div class="icon">▶️</div>
-          <h3>Analyse directe depuis YouTube</h3>
-          <p>Pas d'export ni de bidouille. Un lien suffit : le téléchargement et l'analyse se lancent tout seuls.</p>
+          <h3 data-i18n="card.0.title">Analyse directe depuis YouTube</h3>
+          <p data-i18n="card.0.desc">Pas d'export ni de bidouille. Un lien suffit : le téléchargement et l'analyse se lancent tout seuls.</p>
         </div>
         <div class="card reveal" style="--d:1">
           <div class="icon">📝</div>
-          <h3>Résumé IA</h3>
-          <p>La vidéo racontée en quelques phrases lisibles, pas juste une liste de mots-clés balancés en vrac.</p>
+          <h3 data-i18n="card.1.title">Résumé IA</h3>
+          <p data-i18n="card.1.desc">La vidéo racontée en quelques phrases lisibles, pas juste une liste de mots-clés balancés en vrac.</p>
         </div>
         <div class="card reveal" style="--d:2">
           <div class="icon">⏱️</div>
-          <h3>Timeline & points forts</h3>
-          <p>Chaque moment noté sur toute la durée. Fini de re-regarder la vidéo entière pour retrouver LE passage.</p>
+          <h3 data-i18n="card.2.title">Timeline & points forts</h3>
+          <p data-i18n="card.2.desc">Chaque moment noté sur toute la durée. Fini de re-regarder la vidéo entière pour retrouver LE passage.</p>
         </div>
         <div class="card reveal" style="--d:3">
           <div class="icon">🧩</div>
-          <h3>Structure & hook</h3>
-          <p>Ce qui accroche dans les 10 premières secondes — et l'endroit précis où ça décroche après.</p>
+          <h3 data-i18n="card.3.title">Structure & hook</h3>
+          <p data-i18n="card.3.desc">Ce qui accroche dans les 10 premières secondes — et l'endroit précis où ça décroche après.</p>
         </div>
         <div class="card reveal" style="--d:4">
           <div class="icon">✂️</div>
-          <h3>Potentiel Shorts</h3>
-          <p>Les extraits qui ont une vraie chance en format court, repérés automatiquement pour toi.</p>
+          <h3 data-i18n="card.4.title">Potentiel Shorts</h3>
+          <p data-i18n="card.4.desc">Les extraits qui ont une vraie chance en format court, repérés automatiquement pour toi.</p>
         </div>
         <div class="card reveal" style="--d:5">
           <div class="icon">✅</div>
-          <h3>Checklist avant publication</h3>
-          <p>Une dernière relecture avant de cliquer sur publier, pour éviter le "ah zut, j'aurais dû".</p>
+          <h3 data-i18n="card.5.title">Checklist avant publication</h3>
+          <p data-i18n="card.5.desc">Une dernière relecture avant de cliquer sur publier, pour éviter le "ah zut, j'aurais dû".</p>
         </div>
         <div class="card reveal" style="--d:0">
           <div class="icon">🔀</div>
-          <h3>Comparaison de vidéos</h3>
-          <p>Deux analyses côte à côte pour voir ce qui a vraiment changé d'une vidéo à l'autre.</p>
+          <h3 data-i18n="card.6.title">Comparaison de vidéos</h3>
+          <p data-i18n="card.6.desc">Deux analyses côte à côte pour voir ce qui a vraiment changé d'une vidéo à l'autre.</p>
         </div>
         <div class="card reveal" style="--d:1">
           <div class="icon">🌓</div>
-          <h3>Thème clair / sombre</h3>
-          <p>Parce que tout le monde n'a pas les mêmes yeux à minuit. Disponible en français et en anglais.</p>
+          <h3 data-i18n="card.7.title">Thème clair / sombre</h3>
+          <p data-i18n="card.7.desc">Parce que tout le monde n'a pas les mêmes yeux à minuit. Disponible en français et en anglais.</p>
         </div>
         <div class="card reveal" style="--d:2">
           <div class="icon">💬</div>
-          <h3>Chat par vidéo</h3>
-          <p>Tu poses ta question, l'IA répond en restant sur LA vidéo analysée — pas sur autre chose.</p>
+          <h3 data-i18n="card.8.title">Chat par vidéo</h3>
+          <p data-i18n="card.8.desc">Tu poses ta question, l'IA répond en restant sur LA vidéo analysée — pas sur autre chose.</p>
         </div>
       </div>
     </div>
@@ -332,29 +335,29 @@
   <section id="comment-ca-marche">
     <div class="wrap">
       <div class="section-head reveal">
-        <p class="eyebrow">Comment ça marche</p>
-        <h2>De l'URL au rapport complet</h2>
+        <p class="eyebrow" data-i18n="how.eyebrow">Comment ça marche</p>
+        <h2 data-i18n="how.title">De l'URL au rapport complet</h2>
       </div>
       <div class="steps">
         <div class="step reveal" style="--d:0">
           <div class="num"></div>
-          <h3>Colle le lien</h3>
-          <p>Une URL YouTube, ou directement ton propre fichier vidéo. Ça suffit pour démarrer.</p>
+          <h3 data-i18n="step.0.title">Colle le lien</h3>
+          <p data-i18n="step.0.desc">Une URL YouTube, ou directement ton propre fichier vidéo. Ça suffit pour démarrer.</p>
         </div>
         <div class="step reveal" style="--d:1">
           <div class="num"></div>
-          <h3>Téléchargement & transcription</h3>
-          <p>Vidalyse récupère la vidéo et la transcrit — en local si tu préfères garder ça pour toi.</p>
+          <h3 data-i18n="step.1.title">Téléchargement & transcription</h3>
+          <p data-i18n="step.1.desc">Vidalyse récupère la vidéo et la transcrit — en local si tu préfères garder ça pour toi.</p>
         </div>
         <div class="step reveal" style="--d:2">
           <div class="num"></div>
-          <h3>Analyse IA</h3>
-          <p>Résumé, timeline, structure, hook, Shorts : tout ressort en quelques minutes.</p>
+          <h3 data-i18n="step.2.title">Analyse IA</h3>
+          <p data-i18n="step.2.desc">Résumé, timeline, structure, hook, Shorts : tout ressort en quelques minutes.</p>
         </div>
         <div class="step reveal" style="--d:3">
           <div class="num"></div>
-          <h3>Exploration & chat</h3>
-          <p>Tu navigues par onglets, tu poses tes questions à Lyra, tu avances.</p>
+          <h3 data-i18n="step.3.title">Exploration & chat</h3>
+          <p data-i18n="step.3.desc">Tu navigues par onglets, tu poses tes questions à Lyra, tu avances.</p>
         </div>
       </div>
     </div>
@@ -364,42 +367,42 @@
     <div class="wrap">
       <div class="split">
         <div class="reveal" style="--d:0">
-          <p class="eyebrow">Confidentialité & coût</p>
-          <h2>Gratuit, pas juste en apparence</h2>
+          <p class="eyebrow" data-i18n="privacy.eyebrow">Confidentialité & coût</p>
+          <h2 data-i18n="privacy.title">Gratuit, pas juste en apparence</h2>
           <ul>
             <li>
               <span class="check">✓</span>
-              <div>Aucun abonnement Vidalyse
+              <div data-i18n="priv.0">Aucun abonnement Vidalyse
                 <span class="sub">Ta clé Gemini, Ollama en local, ou Whisper local : zéro euro dépensé chez nous.</span>
               </div>
             </li>
             <li>
               <span class="check">✓</span>
-              <div>Transcription 100% locale
+              <div data-i18n="priv.1">Transcription 100% locale
                 <span class="sub">L'audio de tes vidéos ne quitte pas ta machine. On n'a même pas besoin de l'entendre.</span>
               </div>
             </li>
             <li>
               <span class="check">✓</span>
-              <div>Vision locale avec LLaVA
+              <div data-i18n="priv.2">Vision locale avec LLaVA
                 <span class="sub">L'analyse des images peut elle aussi tourner entièrement chez toi, via Ollama.</span>
               </div>
             </li>
             <li>
               <span class="check">✓</span>
-              <div>Tes clés, chez toi
+              <div data-i18n="priv.3">Tes clés, chez toi
                 <span class="sub">Aucune clé API stockée sur nos serveurs. Chacun garde la sienne, un point c'est tout.</span>
               </div>
             </li>
           </ul>
         </div>
         <div class="panel reveal" style="--d:1">
-          <p class="eyebrow" style="margin-bottom:18px;">Pile technique gratuite</p>
+          <p class="eyebrow" style="margin-bottom:18px;" data-i18n="panel.eyebrow">Pile technique gratuite</p>
           <ul style="display:grid; gap:14px; list-style:none; padding:0; margin:0; font-size:14px; color:var(--muted);">
-            <li>🧠 Gemini — ta clé personnelle gratuite</li>
-            <li>💻 Ollama — modèles locaux, texte et vision</li>
-            <li>🎙️ Whisper local — transcription sur ta machine</li>
-            <li>👁️ LLaVA — analyse d'images en local</li>
+            <li data-i18n="stack.0">🧠 Gemini — ta clé personnelle gratuite</li>
+            <li data-i18n="stack.1">💻 Ollama — modèles locaux, texte et vision</li>
+            <li data-i18n="stack.2">🎙️ Whisper local — transcription sur ta machine</li>
+            <li data-i18n="stack.3">👁️ LLaVA — analyse d'images en local</li>
           </ul>
         </div>
       </div>
@@ -410,15 +413,15 @@
     <div class="wrap">
       <div class="lyra-box reveal">
         <div>
-          <p class="eyebrow">Assistant IA</p>
-          <h2>Lyra, ta copilote dans Vidalyse</h2>
-          <p>Elle répond sur la vidéo que tu viens d'analyser, et peut aussi bidouiller l'appli pour toi : changer de thème, de langue, relancer une analyse. Les trucs sensibles restent sous ton contrôle, évidemment.</p>
+          <p class="eyebrow" data-i18n="lyra.eyebrow">Assistant IA</p>
+          <h2 data-i18n="lyra.title">Lyra, ta copilote dans Vidalyse</h2>
+          <p data-i18n="lyra.desc">Elle répond sur la vidéo que tu viens d'analyser, et peut aussi bidouiller l'appli pour toi : changer de thème, de langue, relancer une analyse. Les trucs sensibles restent sous ton contrôle, évidemment.</p>
         </div>
         <div class="chat-mock">
-          <div class="bubble user">Quels sont les 3 moments les plus forts de cette vidéo ?</div>
-          <div class="bubble ai">L'accroche à 0:12, la démo à 3:40, et la conclusion qui tombe bien à 9:05.</div>
-          <div class="bubble user user2">Passe l'interface en thème clair.</div>
-          <div class="bubble ai ai2">Fait — thème clair activé ✨</div>
+          <div class="bubble user" data-i18n="chat.0">Quels sont les 3 moments les plus forts de cette vidéo ?</div>
+          <div class="bubble ai" data-i18n="chat.1">L'accroche à 0:12, la démo à 3:40, et la conclusion qui tombe bien à 9:05.</div>
+          <div class="bubble user user2" data-i18n="chat.2">Passe l'interface en thème clair.</div>
+          <div class="bubble ai ai2" data-i18n="chat.3">Fait — thème clair activé ✨</div>
         </div>
       </div>
     </div>
@@ -427,9 +430,9 @@
   <section id="cta" class="cta">
     <div class="wrap">
       <div class="cta-panel reveal">
-        <h2>Prêt à lancer ta première analyse ?</h2>
-        <p>Pas de carte bancaire, pas d'essai gratuit qui devient payant au bout de 14 jours. Mets ta clé Gemini ou pars en local, et vas-y.</p>
-        <a class="btn btn-primary" href="#top">Retour en haut</a>
+        <h2 data-i18n="cta.title">Prêt à lancer ta première analyse ?</h2>
+        <p data-i18n="cta.desc">Pas de carte bancaire, pas d'essai gratuit qui devient payant au bout de 14 jours. Mets ta clé Gemini ou pars en local, et vas-y.</p>
+        <a class="btn btn-primary" href="#top" data-i18n="cta.button">Retour en haut</a>
       </div>
     </div>
   </section>
@@ -439,11 +442,172 @@
 <footer>
   <div class="wrap foot-row">
     <div class="foot-logo"><img src="favicon.png" alt=""> Vidalyse</div>
-    <div class="fine">Analyse IA de vidéos YouTube. Gratuite, point.</div>
+    <div class="fine" data-i18n="footer.tagline">Analyse IA de vidéos YouTube. Gratuite, point.</div>
   </div>
 </footer>
 
 <script>
+  // i18n — auto-detected from the visitor's browser language (fr default, en otherwise)
+  var translations = {
+    fr: {
+      "meta.title": "Vidalyse — Analyse IA de vos vidéos YouTube",
+      "meta.desc": "Colle un lien YouTube, Vidalyse télécharge, transcrit et analyse la vidéo pour toi. Gratuit, et ça reste chez toi si tu veux.",
+      "nav.features": "Fonctionnalités",
+      "nav.how": "Comment ça marche",
+      "nav.privacy": "Confidentialité",
+      "nav.lyra": "Lyra",
+      "nav.cta": "Essayer gratuitement",
+      "hero.badge": "Gratuit. Pas de CB. Pas d'abonnement caché.",
+      "hero.title": "Colle un lien YouTube.<br><span class=\"gradient-text\">Vidalyse fait le reste.</span>",
+      "hero.lead": "Téléchargement, transcription, résumé, points forts, hook, potentiel Shorts... et un assistant pour en discuter. Tu peux même garder tout ça en local si t'aimes pas partager.",
+      "hero.cta2": "Voir comment ça marche",
+      "features.eyebrow": "Fonctionnalités",
+      "features.title": "Ce qu'il y a sous le capot",
+      "features.sub": "Un lien collé, une vidéo décortiquée. Pas de manip en plus.",
+      "card.0.title": "Analyse directe depuis YouTube",
+      "card.0.desc": "Pas d'export ni de bidouille. Un lien suffit : le téléchargement et l'analyse se lancent tout seuls.",
+      "card.1.title": "Résumé IA",
+      "card.1.desc": "La vidéo racontée en quelques phrases lisibles, pas juste une liste de mots-clés balancés en vrac.",
+      "card.2.title": "Timeline & points forts",
+      "card.2.desc": "Chaque moment noté sur toute la durée. Fini de re-regarder la vidéo entière pour retrouver LE passage.",
+      "card.3.title": "Structure & hook",
+      "card.3.desc": "Ce qui accroche dans les 10 premières secondes — et l'endroit précis où ça décroche après.",
+      "card.4.title": "Potentiel Shorts",
+      "card.4.desc": "Les extraits qui ont une vraie chance en format court, repérés automatiquement pour toi.",
+      "card.5.title": "Checklist avant publication",
+      "card.5.desc": "Une dernière relecture avant de cliquer sur publier, pour éviter le \"ah zut, j'aurais dû\".",
+      "card.6.title": "Comparaison de vidéos",
+      "card.6.desc": "Deux analyses côte à côte pour voir ce qui a vraiment changé d'une vidéo à l'autre.",
+      "card.7.title": "Thème clair / sombre",
+      "card.7.desc": "Parce que tout le monde n'a pas les mêmes yeux à minuit. Disponible en français et en anglais.",
+      "card.8.title": "Chat par vidéo",
+      "card.8.desc": "Tu poses ta question, l'IA répond en restant sur LA vidéo analysée — pas sur autre chose.",
+      "how.eyebrow": "Comment ça marche",
+      "how.title": "De l'URL au rapport complet",
+      "step.0.title": "Colle le lien",
+      "step.0.desc": "Une URL YouTube, ou directement ton propre fichier vidéo. Ça suffit pour démarrer.",
+      "step.1.title": "Téléchargement & transcription",
+      "step.1.desc": "Vidalyse récupère la vidéo et la transcrit — en local si tu préfères garder ça pour toi.",
+      "step.2.title": "Analyse IA",
+      "step.2.desc": "Résumé, timeline, structure, hook, Shorts : tout ressort en quelques minutes.",
+      "step.3.title": "Exploration & chat",
+      "step.3.desc": "Tu navigues par onglets, tu poses tes questions à Lyra, tu avances.",
+      "privacy.eyebrow": "Confidentialité & coût",
+      "privacy.title": "Gratuit, pas juste en apparence",
+      "priv.0": "Aucun abonnement Vidalyse<span class=\"sub\">Ta clé Gemini, Ollama en local, ou Whisper local : zéro euro dépensé chez nous.</span>",
+      "priv.1": "Transcription 100% locale<span class=\"sub\">L'audio de tes vidéos ne quitte pas ta machine. On n'a même pas besoin de l'entendre.</span>",
+      "priv.2": "Vision locale avec LLaVA<span class=\"sub\">L'analyse des images peut elle aussi tourner entièrement chez toi, via Ollama.</span>",
+      "priv.3": "Tes clés, chez toi<span class=\"sub\">Aucune clé API stockée sur nos serveurs. Chacun garde la sienne, un point c'est tout.</span>",
+      "panel.eyebrow": "Pile technique gratuite",
+      "stack.0": "🧠 Gemini — ta clé personnelle gratuite",
+      "stack.1": "💻 Ollama — modèles locaux, texte et vision",
+      "stack.2": "🎙️ Whisper local — transcription sur ta machine",
+      "stack.3": "👁️ LLaVA — analyse d'images en local",
+      "lyra.eyebrow": "Assistant IA",
+      "lyra.title": "Lyra, ta copilote dans Vidalyse",
+      "lyra.desc": "Elle répond sur la vidéo que tu viens d'analyser, et peut aussi bidouiller l'appli pour toi : changer de thème, de langue, relancer une analyse. Les trucs sensibles restent sous ton contrôle, évidemment.",
+      "chat.0": "Quels sont les 3 moments les plus forts de cette vidéo ?",
+      "chat.1": "L'accroche à 0:12, la démo à 3:40, et la conclusion qui tombe bien à 9:05.",
+      "chat.2": "Passe l'interface en thème clair.",
+      "chat.3": "Fait — thème clair activé ✨",
+      "cta.title": "Prêt à lancer ta première analyse ?",
+      "cta.desc": "Pas de carte bancaire, pas d'essai gratuit qui devient payant au bout de 14 jours. Mets ta clé Gemini ou pars en local, et vas-y.",
+      "cta.button": "Retour en haut",
+      "footer.tagline": "Analyse IA de vidéos YouTube. Gratuite, point."
+    },
+    en: {
+      "meta.title": "Vidalyse — AI analysis for your YouTube videos",
+      "meta.desc": "Paste a YouTube link, Vidalyse downloads, transcribes and analyzes the video for you. Free, and it can stay on your machine.",
+      "nav.features": "Features",
+      "nav.how": "How it works",
+      "nav.privacy": "Privacy",
+      "nav.lyra": "Lyra",
+      "nav.cta": "Try it free",
+      "hero.badge": "Free. No card. No hidden subscription.",
+      "hero.title": "Paste a YouTube link.<br><span class=\"gradient-text\">Vidalyse does the rest.</span>",
+      "hero.lead": "Download, transcription, summary, highlights, hook, Shorts potential... plus an assistant to talk it through. Keep it all local if you're not into sharing.",
+      "hero.cta2": "See how it works",
+      "features.eyebrow": "Features",
+      "features.title": "What's under the hood",
+      "features.sub": "Paste a link, get a video pulled apart. No extra steps.",
+      "card.0.title": "Straight from YouTube",
+      "card.0.desc": "No exporting, no fiddling. One link, and the download plus analysis kick off on their own.",
+      "card.1.title": "AI summary",
+      "card.1.desc": "The video told in a few readable sentences, not just a pile of keywords.",
+      "card.2.title": "Timeline & highlights",
+      "card.2.desc": "Every moment scored across the full runtime. No more rewatching the whole thing to find THAT part.",
+      "card.3.title": "Structure & hook",
+      "card.3.desc": "What grabs attention in the first 10 seconds — and exactly where it lets go after.",
+      "card.4.title": "Shorts potential",
+      "card.4.desc": "The clips with a real shot at working as a short, flagged automatically.",
+      "card.5.title": "Pre-publish checklist",
+      "card.5.desc": "One last pass before you hit publish, so you skip the \"ugh, should've caught that\".",
+      "card.6.title": "Compare videos",
+      "card.6.desc": "Two analyses side by side to see what actually changed between them.",
+      "card.7.title": "Light / dark theme",
+      "card.7.desc": "Because not everyone has the same eyes at midnight. Available in English and French.",
+      "card.8.title": "Chat per video",
+      "card.8.desc": "Ask a question, the AI answers based on THAT video — nothing else.",
+      "how.eyebrow": "How it works",
+      "how.title": "From URL to full report",
+      "step.0.title": "Paste the link",
+      "step.0.desc": "A YouTube URL, or your own video file. That's all it takes to start.",
+      "step.1.title": "Download & transcription",
+      "step.1.desc": "Vidalyse grabs the video and transcribes it — locally if you'd rather keep it to yourself.",
+      "step.2.title": "AI analysis",
+      "step.2.desc": "Summary, timeline, structure, hook, Shorts: it all comes out in a few minutes.",
+      "step.3.title": "Explore & chat",
+      "step.3.desc": "Browse the tabs, ask Lyra your questions, keep moving.",
+      "privacy.eyebrow": "Privacy & cost",
+      "privacy.title": "Free, not just on paper",
+      "priv.0": "No Vidalyse subscription<span class=\"sub\">Your Gemini key, local Ollama, or local Whisper: zero euros spent with us.</span>",
+      "priv.1": "100% local transcription<span class=\"sub\">Your video's audio never leaves your machine. We don't even need to hear it.</span>",
+      "priv.2": "Local vision with LLaVA<span class=\"sub\">Image analysis can run entirely on your machine too, via Ollama.</span>",
+      "priv.3": "Your keys, your place<span class=\"sub\">No API key stored on our servers. Everyone keeps their own, full stop.</span>",
+      "panel.eyebrow": "Free tech stack",
+      "stack.0": "🧠 Gemini — your own free key",
+      "stack.1": "💻 Ollama — local models, text and vision",
+      "stack.2": "🎙️ Local Whisper — transcription on your machine",
+      "stack.3": "👁️ LLaVA — local image analysis",
+      "lyra.eyebrow": "AI assistant",
+      "lyra.title": "Lyra, your copilot inside Vidalyse",
+      "lyra.desc": "She answers questions about the video you just analyzed, and can also tweak the app for you: switch theme, switch language, kick off a new analysis. The sensitive stuff stays under your control, obviously.",
+      "chat.0": "What are the 3 strongest moments in this video?",
+      "chat.1": "The hook at 0:12, the demo at 3:40, and a conclusion that lands well at 9:05.",
+      "chat.2": "Switch the interface to light theme.",
+      "chat.3": "Done — light theme on ✨",
+      "cta.title": "Ready to run your first analysis?",
+      "cta.desc": "No credit card, no free trial that quietly turns into a bill after 14 days. Drop in your Gemini key or go local, and go.",
+      "cta.button": "Back to top",
+      "footer.tagline": "AI analysis for YouTube videos. Free, full stop."
+    }
+  };
+
+  function detectLang() {
+    var langs = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || "en"];
+    for (var i = 0; i < langs.length; i++) {
+      var code = (langs[i] || "").toLowerCase();
+      if (code.indexOf("fr") === 0) return "fr";
+      if (code.indexOf("en") === 0) return "en";
+    }
+    return "en";
+  }
+
+  function applyI18n(lang) {
+    var dict = translations[lang] || translations.en;
+    document.documentElement.setAttribute("lang", lang);
+    if (dict["meta.title"]) document.title = dict["meta.title"];
+    var metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc && dict["meta.desc"]) metaDesc.setAttribute("content", dict["meta.desc"]);
+    document.querySelectorAll("[data-i18n]").forEach(function (el) {
+      var key = el.getAttribute("data-i18n");
+      if (dict[key] !== undefined) el.innerHTML = dict[key];
+    });
+  }
+
+  applyI18n(detectLang());
+  document.body.classList.add("i18n-ready");
+
   // scroll progress bar
   var progress = document.getElementById('progress');
   var header = document.querySelector('header');

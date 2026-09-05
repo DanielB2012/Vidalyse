@@ -51,4 +51,5 @@ next-env.d.ts
 
 # electron / installer build
 /dist/
+/dist-app/
 /electron/oauth-credentials.json

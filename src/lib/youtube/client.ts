@@ -39,8 +39,13 @@ async function getAuthorizedOAuth2Client(userId: string, linkId?: string) {
   // whatever else the user happens to have connected.
   if (linkId) return null;
 
+  // Fallback to the sign-in token — but only for accounts created back when
+  // sign-in still requested the YouTube scopes. Modern sign-in is identity
+  // only, so a user with no YoutubeChannelLink simply has no YouTube access
+  // yet: return null so callers show the "connect a channel" path instead of
+  // hitting a 403.
   const account = await prisma.account.findFirst({ where: { userId, provider: "google" } });
-  if (!account?.access_token) return null;
+  if (!account?.access_token || !account.scope?.includes("youtube.readonly")) return null;
   return authorizedClientFromTokens({
     accessToken: account.access_token,
     refreshToken: account.refresh_token,

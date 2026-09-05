@@ -3,60 +3,26 @@ productName: Vidalyse
 copyright: © Vidalyse
 
 directories:
+  app: dist-app # the whole runtime, assembled by electron/scripts/assemble-standalone.mjs
   output: dist
   buildResources: build
 
-# The app is a supervisor + the Next standalone server + prisma for migrations.
-# No source, no dev deps, no full node_modules — the standalone bundle already
-# carries its own traced deps.
+asar: false # server.js is spawned as a real file; native .node modules load from disk
+npmRebuild: false # node_modules is already built for the bundled node.exe
+afterPack: electron/scripts/after-pack.js # restores .next/node_modules
+
 files:
-  - electron/**/*
-  - package.json
+  - "**/*"
   - "!**/*.map"
-
-extraResources:
-  # Next 16 standalone copies a lot of the repo root — keep the runtime bits
-  # (server.js, .next/, traced node_modules, public/) and drop the rest.
-  # dev.db is critical to exclude: it holds the developer's real OAuth tokens.
-  - from: .next/standalone
-    to: app/.next/standalone
-    filter:
-      - "**/*"
-      - "!**/*.db"
-      - "!**/*.db-journal"
-      - "!.env"
-      - "!.env.*"
-      - "!README.md"
-      - "!docs/**"
-      - "!Logos/**"
-      - "!Site/**"
-      - "!src/**"
-      - "!storage/**"
-      - "!*.config.ts"
-      - "!*.config.mjs"
-      - "!tsconfig*.json"
-      - "!package-lock.json"
-  - from: prisma
-    to: app/prisma
-    filter:
-      - "schema.prisma"
-      - "migrations/**"
-  - from: node_modules/prisma
-    to: app/node_modules/prisma
-  - from: node_modules/@prisma
-    to: app/node_modules/@prisma
-
-# Native modules inside the standalone bundle (better-sqlite3, onnxruntime-node,
-# sharp) must not be asar-packed.
-asarUnpack:
-  - "**/*.node"
+  - "!**/*.ts"
+  - "!**/*.md"
 
 win:
   target:
     - target: nsis
       arch: [x64]
-  # Drop an app icon at build/icon.ico (256x256) to brand the installer +
-  # taskbar; Electron's default icon is used until then.
+  # Drop build/icon.ico (256x256) to brand the app; Electron's default icon
+  # is used until then.
 
 nsis:
   oneClick: false
@@ -66,7 +32,6 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: Vidalyse
 
-# electron-updater feed — GitHub Releases on the code repo.
 publish:
   provider: github
   owner: danielb2012

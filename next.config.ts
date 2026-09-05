@@ -8,6 +8,20 @@ const nextConfig: NextConfig = {
   // (ffmpeg/ffprobe/yt-dlp/onnxruntime/sharp/better-sqlite3) are traced into
   // the bundle automatically. See docs/PACKAGING-WINDOWS.md.
   output: "standalone",
+  // The standalone tracer otherwise sweeps the whole repo root into
+  // .next/standalone (build output, uploaded media, sources…). Keep it lean.
+  outputFileTracingExcludes: {
+    "*": [
+      "dist/**",
+      "dist-app/**",
+      "storage/**",
+      "docs/**",
+      "Logos/**",
+      "Site/**",
+      ".git/**",
+      "**/*.test.*",
+    ],
+  },
   // Native / binary-backed packages must stay out of the bundler:
   // - yt-dlp / ffmpeg / ffprobe are spawned as real binaries; bundling breaks
   //   their __dirname path resolution ("spawn \ROOT\node_modules\...\ffprobe.exe").

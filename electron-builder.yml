@@ -25,6 +25,7 @@ win:
   # is used until then.
 
 nsis:
+  artifactName: VidalyseSetup.exe # stable name for releases/latest/download/VidalyseSetup.exe
   oneClick: false
   perMachine: false # per-user install, no admin / UAC
   allowToChangeInstallationDirectory: true

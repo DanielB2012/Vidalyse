@@ -20,55 +20,80 @@ Décisions arrêtées :
 
 ---
 
+## État : build local fonctionnel ✅
+
+`npm run dist` produit `dist/VidalyseSetup.exe` (~320 Mo). Testé : Electron
+démarre → lance le serveur Next → `/login` répond, auth + Prisma (base
+`template.db`) OK. Reste : release CI, réduction de taille, icône.
+
 ## Architecture au lancement
 
 ```
-VidalyseSetup.exe  (NSIS, install par-utilisateur sous %LOCALAPPDATA%\Programs\Vidalyse, sans admin)
+VidalyseSetup.exe  (NSIS, install par-utilisateur, sans admin)
       │
       ▼
-Vidalyse.exe (Electron, main process)
-      ├─ définit les variables d'env :
+Vidalyse.exe (Electron, main process — pas de fenêtre, icône tray)
+      ├─ variables d'env pour le serveur :
       │     VIDALYSE_DATA_DIR = %APPDATA%\Vidalyse
       │     DATABASE_URL       = file:%APPDATA%\Vidalyse\vidalyse.db
-      │     AUTH_URL           = http://localhost:3477
-      │     AUTH_TRUST_HOST    = true
-      │     PORT               = 3477
-      │     (+ GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET / AUTH_SECRET, voir « Secrets »)
-      ├─ 1er lancement : `prisma migrate deploy` (ou `db push`) sur la DB neuve
-      ├─ démarre le serveur Next.js standalone : `node .next/standalone/server.js`
-      ├─ attend que le port réponde, puis `shell.openExternal('http://localhost:3477')`
-      ├─ icône tray : « Ouvrir Vidalyse », « Vérifier les mises à jour », « Quitter »
-      └─ à la fermeture : arrête le serveur Node
+      │     AUTH_URL / AUTH_TRUST_HOST / PORT=3477
+      │     AUTH_SECRET (généré au 1er lancement, persisté dans %APPDATA%\Vidalyse\.env)
+      │     GOOGLE_CLIENT_ID / SECRET (depuis electron/oauth-credentials.json, baké au build CI)
+      ├─ 1er lancement : copie template.db → %APPDATA%\Vidalyse\vidalyse.db
+      │     (base déjà migrée à la compilation ; PAS de Prisma CLI au runtime)
+      ├─ spawn du serveur : <resources>/app/node.exe <resources>/app/server.js
+      │     (node.exe embarqué = Node réel, natifs déjà à la bonne ABI)
+      ├─ attend le port, puis shell.openExternal('http://localhost:3477')
+      ├─ tray : Ouvrir / Vérifier les mises à jour / Quitter
+      └─ before-quit : tue le process serveur
 ```
 
----
+## Assemblage (`electron/scripts/assemble-standalone.mjs`)
 
-## Changements dans le code de l'app
+Construit `dist-app/` = tout le runtime, que electron-builder empaquète via
+`directories.app`. Étapes clés :
 
-- [x] `src/lib/media/paths.ts` — `STORAGE_ROOT` respecte `VIDALYSE_DATA_DIR`
-      (fallback `<cwd>/storage` en dev).
-- [x] `src/lib/features.ts` — `SOCIAL_ENABLED` off par défaut (communauté +
-      messagerie masquées ; elles ont besoin d'un serveur central).
-- [x] `next.config.ts` — `output: "standalone"` + `outputFileTracingIncludes`
-      pour `ffmpeg-static` / `ffprobe-static` / binaire yt-dlp / `@img` (sharp).
-- [ ] **À vérifier au 1er build** : le tracing embarque bien `onnxruntime-node`
-      (.node) et `better-sqlite3` (.node) dans `.next/standalone`.
-- [ ] `src/lib/prisma.ts` — lu tel quel depuis l'env ; le main process fournit
-      un `DATABASE_URL` absolu → OK, rien à changer a priori.
+- copie `.next/standalone` verbatim, **supprime** ce que le tracer de Next a
+  aspiré depuis la racine (`dist/`, `storage/`, `src/`, `dev.db`, `.env`…) ;
+- ajoute `.next/static` + `public/` ;
+- **`.next/node_modules` → `.next/_ext_modules`** : electron-builder jette tout
+  dossier nommé `node_modules` qu'il ne relie pas à une dépendance ;
+  `electron/scripts/after-pack.js` le renomme à l'envers dans le paquet ;
+- `template.db` : rejoue les `prisma/migrations/*/migration.sql` (SQLite pur) ;
+- copie `node.exe` (= `process.execPath` du build) ;
+- copie `electron-updater` + tout `@prisma/*` (hors moteurs natifs) — requires
+  dynamiques que le tracer rate ;
+- `package.json` généré : `main: electron/main.js` + `dependencies` = tout ce
+  qui est physiquement présent (sinon electron-builder élague `node_modules`).
 
-## Fichiers d'emballage ajoutés
+## Fichiers
 
-- [x] `electron/main.js` — superviseur : env, migrations, `fork` du serveur
-      standalone, attente du port, ouverture navigateur, tray, `electron-updater`.
-- [x] `electron/scripts/assemble-standalone.mjs` — copie `.next/static` +
-      `public/` dans le standalone, écrit `electron/oauth-credentials.json`.
-- [x] `electron-builder.yml` — cible NSIS x64, per-user, `extraResources` (standalone
-      + prisma + prisma CLI), `asarUnpack` des `.node`, publish GitHub `danielb2012/Vidalyse`.
-- [x] `.github/workflows/release.yml` — build sur tag `v*`, secrets `GOOGLE_CLIENT_ID/SECRET`.
-- [x] `package.json` — deps `electron` / `electron-builder` / `electron-updater`,
-      scripts `dist` (local) et `release` (CI), `"main": "electron/main.js"`.
-- [x] `.gitignore` — `/dist/`, `electron/oauth-credentials.json`.
-- [x] `Site/index.html` — bouton « Télécharger pour Windows » → release `latest`.
+- [x] `electron/main.js` — superviseur (spawn node.exe, port, tray, updater).
+- [x] `electron/scripts/assemble-standalone.mjs` — voir ci-dessus.
+- [x] `electron/scripts/after-pack.js` — restaure `.next/node_modules`.
+- [x] `electron-builder.yml` — `directories.app: dist-app`, `asar: false`,
+      `npmRebuild: false`, cible NSIS x64 per-user, `artifactName: VidalyseSetup.exe`,
+      publish GitHub `danielb2012/Vidalyse`.
+- [x] `.github/workflows/release.yml` — `workflow_dispatch` (build + artefact,
+      test sans tag) ou tag `v*` (build + publish Release). Secrets
+      `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`.
+- [x] `package.json` — deps electron*, scripts `dist` / `release`.
+- [x] `index.html` (racine, ex-`Site/`) — bouton → `releases/latest/download/VidalyseSetup.exe`.
+- [x] `src/lib/media/paths.ts` — `STORAGE_ROOT` = `VIDALYSE_DATA_DIR`.
+- [x] `src/lib/features.ts` — `SOCIAL_ENABLED` off.
+- [x] `src/auth.config.ts` — `LOGIN_SCOPES` (identité seule) au sign-in ;
+      `YOUTUBE_SCOPES` réservé au flux « connecter une chaîne ».
+
+## Reste à faire
+
+- [ ] Lancer le workflow (`workflow_dispatch`) pour valider le build CI.
+- [ ] Tag `v0.1.0` → 1ʳᵉ release publique.
+- [ ] Réduire la taille : doublons ffmpeg/ffprobe/better-sqlite3/@prisma entre
+      `node_modules/` et `.next/_ext_modules/` (~250 Mo potentiels).
+- [ ] `build/icon.ico` (256×256) — icône app/installeur.
+- [ ] Migrations sur mise à jour (aujourd'hui : template.db copié au 1er lancement
+      seulement ; rejouer les nouveaux `migration.sql` via better-sqlite3).
+- [ ] Test sur machine Windows vierge (SmartScreen, 1er run, auto-update).
 
 ---
 

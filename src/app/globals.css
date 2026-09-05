@@ -1,0 +1,116 @@
+@import "tailwindcss";
+
+/* Dark is the default look. "Apparence" in Settings writes data-theme="light" /
+   "dark" on <html>; with no attribute ("Système") the OS preference decides. */
+:root {
+  color-scheme: dark;
+  --background: #05060a;
+  --surface: #0c0e15;
+  --surface-raised: #12141d;
+  --border: #1f2230;
+  --border-strong: #2a2e40;
+  --foreground: #f2f3f7;
+  --muted: #8a8fa3;
+  --accent: #7c5cff;
+  --accent-2: #22d3ee;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --background: #f6f7f9;
+  --surface: #ffffff;
+  --surface-raised: #eef0f4;
+  --border: #e3e5ec;
+  --border-strong: #cdd0da;
+  --foreground: #14161d;
+  --muted: #5b6070;
+  --accent: #6a41f5;
+  --accent-2: #0e97b3;
+  --success: #059669;
+  --warning: #b45309;
+  --danger: #e11d48;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --background: #f6f7f9;
+    --surface: #ffffff;
+    --surface-raised: #eef0f4;
+    --border: #e3e5ec;
+    --border-strong: #cdd0da;
+    --foreground: #14161d;
+    --muted: #5b6070;
+    --accent: #6a41f5;
+    --accent-2: #0e97b3;
+    --success: #059669;
+    --warning: #b45309;
+    --danger: #e11d48;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* The Vidalyse wordmark PNG is white on transparent — readable on the dark
+   theme, invisible on the light one. On the light theme, render it as a solid
+   black silhouette (alpha preserved). No-op on the dark theme. */
+:root[data-theme="light"] .brand-logo {
+  filter: brightness(0);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .brand-logo {
+    filter: brightness(0);
+  }
+}
+
+.gradient-text {
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gradient-ring {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+}
+
+::selection {
+  background: var(--accent);
+  color: white;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 999px;
+}

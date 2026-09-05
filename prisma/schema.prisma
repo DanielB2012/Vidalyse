@@ -1,0 +1,647 @@
+// Vidalyse — Prisma schema
+// Auth models follow the Auth.js (NextAuth) Prisma adapter contract.
+// Domain models are grouped by the module boundaries in the product spec (§86):
+// Users / YouTube / Resources(credits) / AI(model preferences) / Content(projects).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ---------- Auth (Auth.js Prisma adapter) ----------
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  accounts Account[]
+  sessions Session[]
+
+  channel           Channel?
+  channelContentCache ChannelContentCache?
+  youtubeChannelLinks YoutubeChannelLink[]
+  modelPreferences  ModelPreference[]
+  creditBalances    CreditBalance[]
+  projects          Project[]
+  videos            Video[]
+  analysisJobs      AnalysisJob[]
+  shortClips        ShortClip[]
+
+  // Community foundations (§13) — schema only, not exposed in the UI yet.
+  publicProfile     PublicProfile?
+  publicVideos      PublicVideo[]
+  vidalyseLikes     VidalyseLike[]
+  followedBy        VidalyseFollow[] @relation("FollowTarget")
+  following         VidalyseFollow[] @relation("FollowSource")
+  channelFollows    ChannelFollow[]
+  userBadges        UserBadge[]
+  streak            Streak?
+  challengeEntries  ChallengeEntry[]
+
+  // Direct messages (private 1:1 chat, §see docs/direct-messages)
+  conversationsAsA   Conversation[]  @relation("ConversationsAsA")
+  conversationsAsB   Conversation[]  @relation("ConversationsAsB")
+  sentDirectMessages DirectMessage[]
+
+  // Moderation (block/report)
+  blockedBy BlockedUser[] @relation("BlockTarget")
+  blocking  BlockedUser[] @relation("BlockSource")
+  reports   Report[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// A user can link SEVERAL Google accounts (see "Comptes connectés" in
+// Settings) — one Vidalyse profile, several YouTube channels. `active` marks
+// which one YouTube API calls currently use (src/lib/youtube/client.ts);
+// exactly one row per user should be active at a time, enforced in app code
+// since SQLite has no partial unique index. The google* fields cache the
+// linked account's own identity (distinct from the Vidalyse User's own
+// name/email/image) — Auth.js's Account model has no such columns normally.
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  active      Boolean @default(false)
+  googleEmail String?
+  googleName  String?
+  googleImage String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------- YouTube ----------
+
+// One row per linked YOUTUBE CHANNEL, not per Google login — a single Google
+// account can own several channels (Brand Accounts), and each only becomes
+// reachable via `channels.list(mine=true)` if IT was the one picked on
+// Google's channel-chooser consent screen. So each row carries its OWN
+// token set from its own authorization (see src/app/api/youtube-channels),
+// even when several rows come from the same Google login. `active` picks
+// which channel's data youtube/client.ts serves; falls back to the legacy
+// single-account flow (Account below) when a user has none yet.
+model YoutubeChannelLink {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  youtubeChannelId String
+  title            String?
+  handle           String?
+  thumbnailUrl     String?
+  accessToken      String?
+  refreshToken     String?
+  expiresAt        Int?
+  scope            String?
+  active           Boolean  @default(false)
+  // Whether this channel's PUBLIC uploads feed into the user's ONE community
+  // profile (there's only ever one PublicProfile per Vidalyse user — this is
+  // "include this channel's videos in it", not "which profile", so several
+  // channels can all be checked at once). Independent from `active`, which
+  // only drives Contenu/Analytics.
+  includeInCommunityProfile Boolean @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  publicProfiles PublicProfile[]
+
+  @@unique([userId, youtubeChannelId])
+  @@index([userId])
+}
+
+// Cached snapshot of the authorized user's own YouTube channel.
+// Never store data we aren't scoped/permitted to read.
+model Channel {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  youtubeId     String   @unique
+  title         String
+  thumbnailUrl  String?
+  subscriberCount Int?
+  videoCount      Int?
+  viewCount       BigInt?
+  fetchedAt       DateTime @default(now())
+}
+
+// Persisted result of classifying the channel's uploads into video/short/live
+// (spec: avoid a full re-scan on every page load — cache the totals, then
+// only classify what's new since `newestPublishedAt` on future visits).
+model ChannelContentCache {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matrix            Json     // Record<video|short|live, Record<public|unlisted|private, number>>
+  scannedCount      Int
+  totalOnChannel     Int?
+  capped            Boolean  @default(false)
+  newestPublishedAt DateTime?
+  updatedAt         DateTime @updatedAt
+}
+
+// ---------- AI model configuration (§17, §69, §87) ----------
+
+enum AICategory {
+  VISION
+  AUDIO
+  TRANSCRIPTION
+  VIDEO
+  TEXT
+}
+
+enum ProviderMode {
+  CLOUD
+  LOCAL
+}
+
+enum ModelTier {
+  LIGHT
+  MEDIUM
+  PRO
+}
+
+// One row per user per AI category: which mode/tier is currently active.
+// This is the "modèles actuellement utilisés" table from the spec (§17).
+model ModelPreference {
+  id       String       @id @default(cuid())
+  userId   String
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category AICategory
+  mode     ProviderMode
+  tier     ModelTier
+  providerId String     // stable id from the provider registry, e.g. "cloud-vision-pro"
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, category])
+}
+
+// ---------- Resources / credits (§62–63) ----------
+
+// Credits/quotas belong to the AI provider (Anthropic, OpenAI…), not Vidalyse.
+// No public API exposes a live balance, so the user types in the real number
+// left from the provider's own console; Vidalyse only decrements it on each
+// successful paid call. One row per catalog model id (ModelEntry.id, e.g.
+// "cloud-text-pro") so the Light and Pro tiers are tracked independently.
+// No row — or remaining = null — means "not tracked": never gated.
+model CreditBalance {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  providerId String
+  remaining  Int?
+  updatedAt  DateTime @updatedAt @default(now())
+
+  @@unique([userId, providerId])
+}
+
+// ---------- App-wide settings (key/value) ----------
+
+// Tiny KV store for values the user types into the UI that aren't tied to one
+// YouTube account. Today it holds exactly one thing: the user's own Gemini API
+// key for the online models. Vidalyse ships with NO key of its own — an online
+// model only works once the user pastes their free key in Paramètres → IA &
+// Lyra. Stored locally, never committed.
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @default(now())
+}
+
+// ---------- Content / projects (§42) ----------
+
+enum ProjectStatus {
+  IDEA
+  IN_PROGRESS
+  READY
+  PUBLISHED
+}
+
+model Project {
+  id          String        @id @default(cuid())
+  userId      String
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  notes       String?
+  status      ProjectStatus @default(IDEA)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- Video analysis pipeline (§21–§30 of the spec) ----------
+
+enum VideoSource {
+  UPLOAD
+  YOUTUBE_URL
+}
+
+// Why the video was imported. PRE_PUBLISH videos are drafts the creator has
+// NOT published on YouTube yet — the "Analyser avant publication" flow (§10).
+enum VideoPurpose {
+  ANALYSIS
+  PRE_PUBLISH
+}
+
+// A video the user wants analyzed. The original file is never deleted
+// automatically (§99) — only derived temp files (extracted audio/frames) are
+// cleaned up after a job runs.
+model Video {
+  id               String      @id @default(cuid())
+  userId           String
+  user             User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source           VideoSource
+  purpose          VideoPurpose @default(ANALYSIS)
+  title            String?
+  // Draft title/description for the pre-publish flow — what the creator plans
+  // to publish with, not yet on YouTube.
+  plannedTitle       String?
+  plannedDescription String?
+  originalFilename String?
+  storagePath      String? // absolute path on disk, UPLOAD only
+  youtubeUrl       String? // YOUTUBE_URL only — not implemented yet, see §21
+  youtubeVideoId   String? // links an UPLOAD video to its published YouTube counterpart, user-provided
+  thumbnailPath    String?
+  sizeBytes        Int?
+  durationSec      Float?
+  width            Int?
+  height           Int?
+  fps              Float?
+  createdAt        DateTime    @default(now())
+
+  jobs       AnalysisJob[]
+  shortClips ShortClip[]
+}
+
+enum ShortClipStatus {
+  PROPOSED
+  EXPORTED
+  FAILED
+}
+
+// A Short candidate the user kept (§9). Survives reloads/sessions. The score
+// is the analytic estimate from highlight scoring, never invented.
+model ShortClip {
+  id             String          @id @default(cuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videoId        String
+  video          Video           @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  startMs        Int
+  endMs          Int
+  title          String?
+  score          Float?
+  reason         String?
+  vertical       Boolean         @default(false)
+  burnedSubtitles Boolean        @default(false)
+  status         ShortClipStatus @default(PROPOSED)
+  exportPath     String? // absolute path on disk, set once EXPORTED
+  exportError    String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([videoId])
+}
+
+// Per-video YouTube stats snapshot, so the channel-comparison route doesn't
+// re-hit the YouTube API on every open (§6). Refreshed when older than a few
+// hours.
+model VideoStatsCache {
+  id             String   @id @default(cuid())
+  userId         String
+  youtubeVideoId String
+  payload        Json // SingleVideoStats — see src/lib/youtube/analytics.ts
+  fetchedAt      DateTime @default(now())
+
+  @@unique([userId, youtubeVideoId])
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+// One stage of the pipeline diagram in the spec (§65). Every job logs each
+// stage it actually attempted — including ones it skipped because a
+// provider/credit wasn't available — so the UI never has to guess.
+enum JobStage {
+  IMPORTED
+  TECHNICAL_ANALYSIS
+  AUDIO_EXTRACTION
+  FRAME_EXTRACTION
+  TRANSCRIPTION
+  VISION_ANALYSIS
+  MERGE
+  TEXT_SYNTHESIS
+  DONE
+}
+
+model AnalysisJob {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videoId      String
+  video        Video      @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  status       JobStatus  @default(PENDING)
+  currentStage JobStage   @default(IMPORTED)
+  progress     Int        @default(0)
+  error        String?
+  result       Json? // MergedAnalysis — see src/lib/pipeline/types.ts
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs AnalysisStageLog[]
+}
+
+// Human-readable per-stage trace: "started", "done", "skipped" (with a real
+// reason — missing provider, exhausted credit), or "error".
+model AnalysisStageLog {
+  id        String      @id @default(cuid())
+  jobId     String
+  job       AnalysisJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  stage     JobStage
+  status    String
+  message   String?
+  createdAt DateTime    @default(now())
+}
+
+// ---------- Community foundations (§13) ----------
+//
+// These tables exist so the data model is ready for the Priority 5 community
+// features (public profiles, Vidalyse follows/likes, badges, streaks,
+// challenges). NOTHING here is wired to a route or a page yet — building the
+// real feature is explicitly out of scope for now. `isPublic` defaults to
+// false everywhere so nothing leaks before the feature actually ships.
+
+model PublicProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  handle      String   @unique // "@handle" Vidalyse, distinct from the YouTube handle
+  displayName String?
+  bio         String?
+  avatarUrl   String?
+  isPublic    Boolean  @default(false)
+  // Which linked channel backs this profile (fallback avatar/title, and which
+  // channel's uploads get auto-mirrored) — see setProfileChannel in
+  // src/lib/community/profile.ts. Independent from YoutubeChannelLink.active.
+  youtubeChannelLinkId String?
+  youtubeChannelLink   YoutubeChannelLink? @relation(fields: [youtubeChannelLinkId], references: [id], onDelete: SetNull)
+  // When true, the creator's PUBLIC YouTube uploads are mirrored automatically
+  // into PublicVideo rows (source "youtube") and shown alongside the ones they
+  // published by hand. Only public-on-YouTube videos — never unlisted/private.
+  autoIncludeYoutube Boolean  @default(true)
+  youtubeSyncedAt    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model VidalyseFollow {
+  id         String   @id @default(cuid())
+  followerId String
+  follower   User     @relation("FollowSource", fields: [followerId], references: [id], onDelete: Cascade)
+  targetId   String
+  target     User     @relation("FollowTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([followerId, targetId])
+}
+
+// "Subscribe" to any YouTube channel, including creators who aren't on Vidalyse.
+// Read-only OAuth means we can't touch the real YouTube subscription — this is a
+// Vidalyse-side follow that surfaces the channel's videos in the home mix.
+model ChannelFollow {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  youtubeChannelId String
+  channelTitle     String?
+  thumbnailUrl     String?
+  createdAt        DateTime @default(now())
+
+  @@unique([userId, youtubeChannelId])
+  @@index([userId])
+}
+
+// A creator's decision to share one analysed video in the community (§13, Phase
+// A). NEVER created automatically — only through the explicit "Publier dans la
+// communauté" action. The public-safe extract of the analysis is snapshotted
+// here at publish time (title / summary / thumbnail / payload) so the feed never
+// has to read a private AnalysisJob.result, and so re-running the analysis
+// doesn't silently change what was published.
+model PublicVideo {
+  id          String   @id @default(cuid())
+  // Stable id used in share URLs (/community/…): never expose the internal id.
+  publicId    String   @unique @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // A public Vidalyse post can reference a locally analysed video or just a
+  // published YouTube id — both optional so this stays flexible.
+  videoId        String?
+  youtubeVideoId String?
+  title       String?
+  // Public-safe snapshot taken from the analysis at publish time.
+  summary      String?
+  thumbnailUrl String?
+  payload      Json?    // { strengths, keyMoments, structure, durationSec, transcriptSource } — see src/lib/community/publish.ts
+  // "analysis" = the creator published this (explicit action, may carry a
+  // summary/payload). "youtube" = auto-mirrored from a public YouTube upload.
+  source      String   @default("analysis")
+  // Explicit publish switch (source "analysis").
+  isPublic    Boolean  @default(false)
+  // Real YouTube privacy: true iff this video is currently public on YouTube.
+  // Maintained by syncYoutubePublications. A row shows in the community when
+  // isPublic OR youtubePublic (and the owner's profile is public).
+  youtubePublic Boolean @default(false)
+  durationSec Float?
+  createdAt   DateTime @default(now())
+  publishedAt DateTime?
+  updatedAt   DateTime @updatedAt @default(now())
+
+  likes VidalyseLike[]
+
+  // One row per analysed video, and one per YouTube video, per user — the
+  // publish action and the YouTube sync each upsert on their own pair.
+  // (Both nullable: SQLite allows many NULLs in a unique index.)
+  @@unique([userId, videoId])
+  @@unique([userId, youtubeVideoId])
+  @@index([userId])
+  @@index([isPublic, publishedAt])
+  @@index([youtubePublic, publishedAt])
+}
+
+model VidalyseLike {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  publicVideoId String
+  publicVideo   PublicVideo @relation(fields: [publicVideoId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@unique([userId, publicVideoId])
+}
+
+model Badge {
+  id          String      @id @default(cuid())
+  code        String      @unique // stable identifier, e.g. "first_analysis"
+  label       String
+  description String?
+  createdAt   DateTime    @default(now())
+  userBadges  UserBadge[]
+}
+
+model UserBadge {
+  id       String   @id @default(cuid())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId  String
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  awardedAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+}
+
+model Streak {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentCount  Int      @default(0)
+  longestCount  Int      @default(0)
+  lastActiveDay DateTime?
+  updatedAt     DateTime @updatedAt
+}
+
+model Challenge {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  title       String
+  description String?
+  startsAt    DateTime?
+  endsAt      DateTime?
+  isPublic    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  entries ChallengeEntry[]
+}
+
+model ChallengeEntry {
+  id          String    @id @default(cuid())
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  progress    Int       @default(0)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([challengeId, userId])
+}
+
+// ---------- Direct messages (private 1:1 chat) ----------
+//
+// Any user can DM any other user who has a PUBLIC community profile — same
+// discoverability boundary as VidalyseFollow, so DMs never reach an account
+// that never opted into the Community. `userAId` is always the lexicographically
+// smaller of the two member ids (enforced in src/lib/messages/dm.ts) so
+// `@@unique([userAId, userBId])` catches a duplicate conversation no matter
+// who starts it.
+model Conversation {
+  id        String   @id @default(cuid())
+  userAId   String
+  userA     User     @relation("ConversationsAsA", fields: [userAId], references: [id], onDelete: Cascade)
+  userBId   String
+  userB     User     @relation("ConversationsAsB", fields: [userBId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt // bumped on every new message — drives inbox order
+
+  messages DirectMessage[]
+
+  @@unique([userAId, userBId])
+  @@index([userBId])
+}
+
+model DirectMessage {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content        String
+  readAt         DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@index([conversationId, createdAt])
+}
+
+// ---------- Moderation (block / report) ----------
+
+// One-directional: A blocking B does not imply B blocks A, but the app checks
+// both directions before letting A and B interact (see src/lib/community/block.ts)
+// so a block always cuts contact both ways regardless of who initiates it.
+model BlockedUser {
+  id        String   @id @default(cuid())
+  blockerId String
+  blocker   User     @relation("BlockSource", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("BlockTarget", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+// A user-filed report against a message, a profile, or a community video.
+// No moderation queue/admin UI yet (dev-scale) — reviewed directly via
+// `npx prisma studio`. `targetId` is whichever id makes sense for
+// `targetType` (DirectMessage.id, User.id, or PublicVideo.id) — not a FK so a
+// report survives the target being deleted later.
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  targetType String // "message" | "profile" | "video"
+  targetId   String
+  reason     String
+  details    String?
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId])
+}

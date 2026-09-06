@@ -14,6 +14,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { execFileSync } from "node:child_process";
 
 const require = createRequire(import.meta.url);
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -77,8 +78,14 @@ cp(path.join(root, ".next", "static"), path.join(out, ".next", "static"));
 cp(path.join(root, "public"), path.join(out, "public"));
 
 // 3. electron entry + OAuth creds (Desktop-app client, baked at build time)
-fs.mkdirSync(path.join(out, "electron"), { recursive: true });
+fs.mkdirSync(path.join(out, "electron", "scripts"), { recursive: true });
 fs.copyFileSync(path.join(root, "electron", "main.js"), path.join(out, "electron", "main.js"));
+// db-sync.cjs runs on the bundled node.exe at every launch (see main.js) to
+// fold shipped schema upgrades into an already-installed vidalyse.db.
+fs.copyFileSync(
+  path.join(root, "electron", "scripts", "db-sync.cjs"),
+  path.join(out, "electron", "scripts", "db-sync.cjs")
+);
 fs.writeFileSync(
   path.join(out, "electron", "oauth-credentials.json"),
   JSON.stringify(
@@ -88,43 +95,43 @@ fs.writeFileSync(
   )
 );
 
-// 4. prisma schema + migration history (kept for future in-app upgrades)
+// 4. prisma schema, for reference inside the package
 fs.mkdirSync(path.join(out, "prisma"), { recursive: true });
 fs.copyFileSync(path.join(root, "prisma", "schema.prisma"), path.join(out, "prisma", "schema.prisma"));
-cp(path.join(root, "prisma", "migrations"), path.join(out, "prisma", "migrations"));
 
-// 5. template.db — replay every migration.sql in order (plain SQLite DDL)
+// 5. schema.sql + template.db — the FULL schema, rendered straight from
+//    schema.prisma. prisma/migrations/ is NOT replayed: it has drifted from the
+//    schema (kept for history only). `migrate diff` is the same path that keeps
+//    dev.db in sync. schema.sql ships alongside: main.js replays it additively
+//    on every launch (electron/scripts/db-sync.cjs) so an already-installed
+//    vidalyse.db picks up new tables/columns after an update.
 const Database = require("better-sqlite3");
+const schemaSqlPath = path.join(out, "schema.sql");
+execFileSync(
+  process.execPath,
+  [
+    path.join(root, "node_modules", "prisma", "build", "index.js"),
+    "migrate",
+    "diff",
+    "--from-empty",
+    "--to-schema",
+    path.join(root, "prisma", "schema.prisma"),
+    "--script",
+    "-o",
+    schemaSqlPath,
+  ],
+  { cwd: root, stdio: "inherit" }
+);
 const tpl = path.join(out, "template.db");
 rm(tpl);
 rm(`${tpl}-journal`);
 const db = new Database(tpl);
-const migDirs = fs
-  .readdirSync(path.join(root, "prisma", "migrations"))
-  .filter((d) => /^\d/.test(d))
-  .sort();
-db.exec(
-  `CREATE TABLE "_prisma_migrations" (
-     "id" TEXT PRIMARY KEY NOT NULL,
-     "checksum" TEXT NOT NULL,
-     "finished_at" DATETIME,
-     "migration_name" TEXT NOT NULL,
-     "logs" TEXT,
-     "rolled_back_at" DATETIME,
-     "started_at" DATETIME NOT NULL DEFAULT current_timestamp,
-     "applied_steps_count" INTEGER UNSIGNED NOT NULL DEFAULT 0
-   )`
-);
-for (const d of migDirs) {
-  const sql = fs.readFileSync(path.join(root, "prisma", "migrations", d, "migration.sql"), "utf8");
-  db.exec(sql);
-  db.prepare(
-    `INSERT INTO "_prisma_migrations" (id, checksum, migration_name, finished_at, applied_steps_count)
-     VALUES (?, '', ?, current_timestamp, 1)`
-  ).run(d, d);
-}
+db.exec(fs.readFileSync(schemaSqlPath, "utf8"));
+const tableCount = db
+  .prepare("SELECT count(*) c FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'")
+  .get().c;
 db.close();
-console.log(`[assemble] template.db built (${migDirs.length} migrations)`);
+console.log(`[assemble] schema.sql + template.db built from schema.prisma (${tableCount} tables)`);
 
 // 6. real node.exe → the Next server runs on it (native modules already match)
 fs.copyFileSync(process.execPath, path.join(out, "node.exe"));

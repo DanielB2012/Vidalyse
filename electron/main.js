@@ -11,7 +11,7 @@ const path = require("node:path");
 const fs = require("node:fs");
 const crypto = require("node:crypto");
 const http = require("node:http");
-const { spawn } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 
 const PORT = 3477;
 const ORIGIN = `http://localhost:${PORT}`;
@@ -62,8 +62,8 @@ function getOrCreateAuthSecret() {
 
 // --- database --------------------------------------------------------
 
-// First launch: drop in the pre-migrated template. (Schema upgrades on app
-// update are a TODO — replay the new prisma/migrations/*/migration.sql here.)
+// First launch: drop in the template DB (full schema, built from schema.prisma
+// at package time — see electron/scripts/assemble-standalone.mjs).
 function ensureDatabase() {
   if (fs.existsSync(dbPath)) return;
   const tpl = path.join(appRoot, "template.db");
@@ -72,6 +72,22 @@ function ensureDatabase() {
     return;
   }
   fs.copyFileSync(tpl, dbPath);
+}
+
+// Every launch: fold new tables / columns from a shipped schema upgrade into the
+// user's existing DB (additive only — see electron/scripts/db-sync.cjs). Runs on
+// the bundled node.exe: the Node-ABI better-sqlite3 build won't load under
+// Electron. No-op in dev (schema.sql is only emitted into the package).
+function syncDatabaseSchema() {
+  const script = path.join(appRoot, "electron", "scripts", "db-sync.cjs");
+  const schemaSql = path.join(appRoot, "schema.sql");
+  if (!fs.existsSync(dbPath) || !fs.existsSync(script) || !fs.existsSync(schemaSql)) return;
+  try {
+    const r = spawnSync(nodeExe, [script, dbPath, schemaSql], { cwd: appRoot, stdio: "inherit" });
+    if (r.status !== 0) console.error(`[vidalyse] db-sync exited with code ${r.status}`);
+  } catch (e) {
+    console.error(`[vidalyse] db-sync failed: ${e && e.message}`);
+  }
 }
 
 // --- server ---------------------------------------------------------
@@ -98,6 +114,7 @@ function childEnv() {
 
 function startServer() {
   ensureDatabase();
+  syncDatabaseSchema();
   serverProc = spawn(nodeExe, [serverEntry], { cwd: serverDir, env: childEnv(), stdio: "inherit" });
   serverProc.on("exit", (code) => {
     if (code && !app.isQuitting) {

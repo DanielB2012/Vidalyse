@@ -77,6 +77,25 @@ for (const j of [
 cp(path.join(root, ".next", "static"), path.join(out, ".next", "static"));
 cp(path.join(root, "public"), path.join(out, "public"));
 
+// 2b. The Turbopack `next build` standalone tracer copies the app-PAGE server
+//     runtime but MISSES app-route-turbo.runtime.prod.js — so every /api/*
+//     route 500s at load with "Cannot find module .../app-route-turbo.runtime
+//     .prod.js" (pages render fine, which is why only API calls broke). Copy
+//     the whole prod runtime set over.
+const nsFrom = path.join(root, "node_modules", "next", "dist", "compiled", "next-server");
+const nsTo = path.join(out, "node_modules", "next", "dist", "compiled", "next-server");
+if (fs.existsSync(nsFrom)) {
+  fs.mkdirSync(nsTo, { recursive: true });
+  let n = 0;
+  for (const f of fs.readdirSync(nsFrom)) {
+    if (f.endsWith(".runtime.prod.js")) {
+      fs.copyFileSync(path.join(nsFrom, f), path.join(nsTo, f));
+      n++;
+    }
+  }
+  console.log(`[assemble] next-server prod runtimes: ${n} file(s) ensured`);
+}
+
 // 3. electron entry + OAuth creds (Desktop-app client, baked at build time)
 fs.mkdirSync(path.join(out, "electron", "scripts"), { recursive: true });
 fs.copyFileSync(path.join(root, "electron", "main.js"), path.join(out, "electron", "main.js"));

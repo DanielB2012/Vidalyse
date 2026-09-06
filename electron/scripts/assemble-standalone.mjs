@@ -149,17 +149,18 @@ const copyPkgTree = (name) => {
 };
 copyPkgTree("electron-updater");
 
-// 6c. Prisma's client runtime does dynamic requires (@prisma/client-runtime-utils,
-//     driver-adapter-utils…) that Next's static tracer misses. Copy the whole
-//     @prisma scope except the native-engine packages (unused with the
-//     better-sqlite3 driver adapter — Prisma 7 runs a WASM query compiler).
+// 6c. Next externalizes these and its static tracer misses their dynamic
+//     requires — the packaged server then 500s with "Cannot find module".
+//     Copy them + their trees from the (flat) root node_modules.
+//     (`next-auth` proved: /api/auth/* → 500; `@prisma/*`: client runtime.)
+for (const p of ["next-auth", "@auth/core", "@auth/prisma-adapter", "googleapis"]) copyPkgTree(p);
 const rootPrisma = path.join(rootNm, "@prisma");
-const skipPrisma = new Set(["engines", "fetch-engine", "get-platform", "engines-version"]);
 if (fs.existsSync(rootPrisma)) {
   for (const p of fs.readdirSync(rootPrisma)) {
-    if (!skipPrisma.has(p)) copyPkgTree(`@prisma/${p}`);
+    if (!["engines", "fetch-engine"].includes(p)) copyPkgTree(`@prisma/${p}`);
   }
 }
+for (const p of ["engines", "fetch-engine"]) rm(path.join(outNm, "@prisma", p));
 
 // 7. size trim — keep win x64 only. serverExternalPackages land in
 //    .next/_ext_modules/<pkg>-<hash>/ (renamed in step 1a), so resolve by prefix.

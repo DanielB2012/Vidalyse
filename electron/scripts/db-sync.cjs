@@ -65,7 +65,16 @@ function columnDefs(body) {
     .map((m) => ({ name: m[1], def: m[2].replace(/\s+/g, " ").trim() }));
 }
 
-const db = new Database(dbPath);
+let db;
+try {
+  db = new Database(dbPath);
+  db.prepare("SELECT 1 FROM sqlite_master LIMIT 1").get();
+} catch (e) {
+  // Not a usable SQLite file — main.js's ensureDatabase() is responsible for
+  // replacing it; nothing to reconcile here. Exit clean, don't dump a trace.
+  console.error(`[db-sync] cannot open DB (${e && e.code}); skipped`);
+  process.exit(0);
+}
 const exists = (type, name) =>
   !!db.prepare("SELECT 1 FROM sqlite_master WHERE type = ? AND name = ?").get(type, name);
 const columnsOf = (table) =>

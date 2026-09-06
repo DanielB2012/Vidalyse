@@ -86,16 +86,50 @@ function getOrCreateAuthSecret() {
 
 // --- database --------------------------------------------------------
 
+// A real SQLite file starts with the 16-byte magic "SQLite format 3\0".
+// (Checking the header needs no native module, unlike opening the DB.)
+function isSqliteFile(p) {
+  try {
+    const fd = fs.openSync(p, "r");
+    const buf = Buffer.alloc(16);
+    const n = fs.readSync(fd, buf, 0, 16, 0);
+    fs.closeSync(fd);
+    return n === 16 && buf.toString("latin1") === "SQLite format 3\0";
+  } catch {
+    return false;
+  }
+}
+
 // First launch: drop in the template DB (full schema, built from schema.prisma
 // at package time — see electron/scripts/assemble-standalone.mjs).
+// Also self-heals: a missing or corrupt (not-a-SQLite) vidalyse.db is moved
+// aside and recreated from the template, so a bad first copy can't wedge the
+// app forever (it did: SQLITE_NOTADB on every sign-in).
 function ensureDatabase() {
-  if (fs.existsSync(dbPath)) return;
   const tpl = path.join(appRoot, "template.db");
+  if (fs.existsSync(dbPath) && isSqliteFile(dbPath)) return;
   if (!fs.existsSync(tpl)) {
     dialog.showErrorBox("Vidalyse", "Base de données modèle introuvable dans l'installation.");
     return;
   }
+  if (fs.existsSync(dbPath)) {
+    const bak = `${dbPath}.corrupt-${Date.now()}`;
+    try {
+      fs.renameSync(dbPath, bak);
+      for (const suffix of ["-journal", "-wal", "-shm"]) {
+        try {
+          fs.rmSync(dbPath + suffix, { force: true });
+        } catch {
+          /* ignore */
+        }
+      }
+      log(`vidalyse.db is not a valid SQLite file — moved to ${bak}`);
+    } catch (e) {
+      log(`could not move corrupt vidalyse.db: ${e && e.message}`);
+    }
+  }
   fs.copyFileSync(tpl, dbPath);
+  log("vidalyse.db (re)created from template");
 }
 
 // Every launch: fold new tables / columns from a shipped schema upgrade into the

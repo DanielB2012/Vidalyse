@@ -20,13 +20,15 @@ export default async function LoginPage() {
 
       <div className="relative z-10 w-full max-w-md rounded-2xl border border-border bg-surface/80 p-10 shadow-2xl backdrop-blur">
         <div className="mb-8 text-center">
-          <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl gradient-ring text-lg font-bold text-white">
-            V
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            <span className="gradient-text">Vidalyse</span>
-          </h1>
-          <p className="mt-2 text-sm text-muted">{t("login.tagline")}</p>
+          {/* Full wordmark (white on transparent) — `.brand-logo` turns it black
+              on the light theme, see globals.css. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-vidalyse-complet.png"
+            alt="Vidalyse"
+            className="brand-logo mx-auto mb-1 h-20 w-auto max-w-full object-contain"
+          />
+          <p className="text-sm text-muted">{t("login.tagline")}</p>
         </div>
 
         <form

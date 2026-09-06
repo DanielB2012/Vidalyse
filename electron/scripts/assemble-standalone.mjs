@@ -86,6 +86,11 @@ fs.copyFileSync(
   path.join(root, "electron", "scripts", "db-sync.cjs"),
   path.join(out, "electron", "scripts", "db-sync.cjs")
 );
+// tray icon — without it the Tray is created with an empty image and is
+// effectively invisible, so the user can't reach the menu (logs / quit).
+if (fs.existsSync(path.join(root, "electron", "tray.png"))) {
+  fs.copyFileSync(path.join(root, "electron", "tray.png"), path.join(out, "electron", "tray.png"));
+}
 fs.writeFileSync(
   path.join(out, "electron", "oauth-credentials.json"),
   JSON.stringify(

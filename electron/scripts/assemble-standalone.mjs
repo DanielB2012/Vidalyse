@@ -193,6 +193,20 @@ if (fs.existsSync(rootPrisma)) {
 }
 for (const p of ["engines", "fetch-engine"]) rm(path.join(outNm, "@prisma", p));
 
+// 6d. @huggingface/transformers (LOCAL model pack — Whisper transcription) is a
+//     serverExternalPackage, so Next rewrites the app import to a hashed
+//     .next/node_modules/@huggingface/transformers-<hash>/ dir but does NOT
+//     follow that package's own bare `import "onnxruntime-node"` / `"sharp"`
+//     (ERR_MODULE_NOT_FOUND at install time). Copy them by real name into
+//     node_modules/ — the hashed dir's resolver walks up and finds them here.
+for (const p of ["onnxruntime-node", "onnxruntime-common", "sharp"]) copyPkgTree(p);
+// sharp's platform binary is an optionalDependency (copyPkgTree only follows
+// `dependencies`); copy whatever @img/* the flat root tree actually has.
+const rootImg = path.join(rootNm, "@img");
+if (fs.existsSync(rootImg)) {
+  for (const d of fs.readdirSync(rootImg)) cp(path.join(rootImg, d), path.join(outNm, "@img", d));
+}
+
 // 7. size trim — keep win x64 only. serverExternalPackages land in
 //    .next/_ext_modules/<pkg>-<hash>/ (renamed in step 1a), so resolve by prefix.
 const extNm = path.join(out, ".next", "_ext_modules");
@@ -211,7 +225,10 @@ for (const base of [path.join(out, "node_modules"), extNm]) {
   }
   const img = path.join(base, "@img");
   if (fs.existsSync(img)) {
-    for (const d of fs.readdirSync(img)) if (!/win32-x64/.test(d)) rm(path.join(img, d));
+    // drop other-platform sharp binaries; keep @img/colour and win32-x64.
+    for (const d of fs.readdirSync(img)) {
+      if (/^sharp-/.test(d) && !/win32-x64/.test(d)) rm(path.join(img, d));
+    }
   }
 }
 // better-sqlite3 ships prebuilds for every platform; the .node it actually
@@ -221,6 +238,18 @@ for (const bsq of [path.join(out, "node_modules", "better-sqlite3"), extPkg("bet
     rm(path.join(bsq, "prebuilds"));
     rm(path.join(bsq, "deps"));
     rm(path.join(bsq, "src"));
+  }
+}
+// onnxruntime-node bundles every platform's libs under bin/napi-v6/ (~210 MB);
+// keep win32/x64 only.
+for (const ort of [path.join(out, "node_modules", "onnxruntime-node"), extPkg("onnxruntime-node-")]) {
+  const napi = ort && path.join(ort, "bin", "napi-v6");
+  if (napi && fs.existsSync(napi)) {
+    for (const plat of fs.readdirSync(napi)) if (plat !== "win32") rm(path.join(napi, plat));
+    const win = path.join(napi, "win32");
+    if (fs.existsSync(win)) {
+      for (const arch of fs.readdirSync(win)) if (arch !== "x64") rm(path.join(win, arch));
+    }
   }
 }
 

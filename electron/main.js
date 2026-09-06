@@ -32,6 +32,30 @@ fs.mkdirSync(dataDir, { recursive: true });
 const dbPath = path.join(dataDir, "vidalyse.db");
 const envPath = path.join(dataDir, ".env");
 
+// --- logging -----------------------------------------------------------
+// There is no console for a packaged GUI app, so the Next server's output
+// (and any 500 stack trace) would otherwise vanish. Tee everything to
+// %APPDATA%\Vidalyse\logs\vidalyse.log — reachable from the tray menu.
+const logDir = path.join(dataDir, "logs");
+fs.mkdirSync(logDir, { recursive: true });
+const logFile = path.join(logDir, "vidalyse.log");
+try {
+  if (fs.existsSync(logFile) && fs.statSync(logFile).size > 5_000_000) fs.rmSync(logFile);
+} catch {
+  /* ignore */
+}
+const logStream = fs.createWriteStream(logFile, { flags: "a" });
+function log(line) {
+  const msg = `[${new Date().toISOString()}] ${line}\n`;
+  try {
+    logStream.write(msg);
+  } catch {
+    /* ignore */
+  }
+  process.stdout.write(msg);
+}
+log(`--- Vidalyse ${app.getVersion()} starting (packaged=${app.isPackaged}) ---`);
+
 // --- secrets -----------------------------------------------------------
 
 function loadOAuth() {
@@ -81,12 +105,17 @@ function ensureDatabase() {
 function syncDatabaseSchema() {
   const script = path.join(appRoot, "electron", "scripts", "db-sync.cjs");
   const schemaSql = path.join(appRoot, "schema.sql");
-  if (!fs.existsSync(dbPath) || !fs.existsSync(script) || !fs.existsSync(schemaSql)) return;
+  if (!fs.existsSync(dbPath)) return log("db-sync: no DB yet, skipped");
+  if (!fs.existsSync(script) || !fs.existsSync(schemaSql)) {
+    return log(`db-sync: missing files (script=${fs.existsSync(script)} schema=${fs.existsSync(schemaSql)}), skipped`);
+  }
   try {
-    const r = spawnSync(nodeExe, [script, dbPath, schemaSql], { cwd: appRoot, stdio: "inherit" });
-    if (r.status !== 0) console.error(`[vidalyse] db-sync exited with code ${r.status}`);
+    const r = spawnSync(nodeExe, [script, dbPath, schemaSql], { cwd: appRoot, encoding: "utf8" });
+    if (r.stdout && r.stdout.trim()) log(`db-sync: ${r.stdout.trim()}`);
+    if (r.stderr && r.stderr.trim()) log(`db-sync stderr: ${r.stderr.trim()}`);
+    log(`db-sync: exit ${r.status}`);
   } catch (e) {
-    console.error(`[vidalyse] db-sync failed: ${e && e.message}`);
+    log(`db-sync failed to run: ${e && e.message}`);
   }
 }
 
@@ -115,10 +144,21 @@ function childEnv() {
 function startServer() {
   ensureDatabase();
   syncDatabaseSchema();
-  serverProc = spawn(nodeExe, [serverEntry], { cwd: serverDir, env: childEnv(), stdio: "inherit" });
+  log(`starting server: ${nodeExe} ${serverEntry} (cwd=${serverDir})`);
+  serverProc = spawn(nodeExe, [serverEntry], {
+    cwd: serverDir,
+    env: childEnv(),
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  serverProc.stdout.on("data", (b) => log(`[server] ${String(b).trimEnd()}`));
+  serverProc.stderr.on("data", (b) => log(`[server] ${String(b).trimEnd()}`));
   serverProc.on("exit", (code) => {
+    log(`server exited with code ${code}`);
     if (code && !app.isQuitting) {
-      dialog.showErrorBox("Vidalyse", `Le serveur local s'est arrêté (code ${code}).`);
+      dialog.showErrorBox(
+        "Vidalyse",
+        `Le serveur local s'est arrêté (code ${code}).\n\nDétails dans :\n${logFile}`
+      );
       app.quit();
     }
   });
@@ -182,6 +222,7 @@ function buildTray(autoUpdater) {
         enabled: Boolean(autoUpdater),
         click: () => autoUpdater && autoUpdater.checkForUpdates().catch(() => {}),
       },
+      { label: "Ouvrir les journaux", click: () => shell.showItemInFolder(logFile) },
       { type: "separator" },
       {
         label: "Quitter",
@@ -210,7 +251,10 @@ if (!app.requestSingleInstanceLock()) {
       await waitForServer();
       await shell.openExternal(ORIGIN);
     } catch {
-      dialog.showErrorBox("Vidalyse", "Le serveur local n'a pas démarré à temps.");
+      dialog.showErrorBox(
+        "Vidalyse",
+        `Le serveur local n'a pas démarré à temps.\n\nDétails dans :\n${logFile}`
+      );
       app.quit();
     }
   });

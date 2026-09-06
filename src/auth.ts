@@ -48,27 +48,40 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter,
   events: {
+    // Auth.js does NOT catch errors thrown from `events` — an exception here
+    // escapes the callback route as a bare 500 and blocks sign-in entirely.
+    // Both of these are best-effort bookkeeping (default model prefs, cached
+    // Google display name); a failure must never stop the user logging in.
     async createUser({ user }) {
-      if (user.id) await ensureDefaultUserResources(user.id);
+      if (!user.id) return;
+      try {
+        await ensureDefaultUserResources(user.id);
+      } catch (err) {
+        console.error("[auth] ensureDefaultUserResources failed (non-fatal):", err);
+      }
     },
     // Fires for the primary account at signup AND for every account linked
     // afterwards — cache the linked Google identity (Account has no such
     // columns by default) and make the very first Google account active.
     async linkAccount({ user, account, profile: rawProfile }) {
       if (account.provider !== "google" || !user.id) return;
-      // Typed as User | AdapterUser upstream, but for an OAuth provider this
-      // is really the raw profile Google returned (name/email/picture).
-      const profile = rawProfile as unknown as { email?: string; name?: string; picture?: string };
-      const count = await prisma.account.count({ where: { userId: user.id, provider: "google" } });
-      await prisma.account.update({
-        where: { provider_providerAccountId: { provider: "google", providerAccountId: account.providerAccountId } },
-        data: {
-          googleEmail: typeof profile?.email === "string" ? profile.email : null,
-          googleName: typeof profile?.name === "string" ? profile.name : null,
-          googleImage: typeof profile?.picture === "string" ? profile.picture : null,
-          active: count <= 1,
-        },
-      });
+      try {
+        // Typed as User | AdapterUser upstream, but for an OAuth provider this
+        // is really the raw profile Google returned (name/email/picture).
+        const profile = rawProfile as unknown as { email?: string; name?: string; picture?: string };
+        const count = await prisma.account.count({ where: { userId: user.id, provider: "google" } });
+        await prisma.account.update({
+          where: { provider_providerAccountId: { provider: "google", providerAccountId: account.providerAccountId } },
+          data: {
+            googleEmail: typeof profile?.email === "string" ? profile.email : null,
+            googleName: typeof profile?.name === "string" ? profile.name : null,
+            googleImage: typeof profile?.picture === "string" ? profile.picture : null,
+            active: count <= 1,
+          },
+        });
+      } catch (err) {
+        console.error("[auth] linkAccount identity cache failed (non-fatal):", err);
+      }
     },
   },
 });

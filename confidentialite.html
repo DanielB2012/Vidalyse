@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vidalyse — Politique de confidentialité</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<style>
+  :root{--bg:#0b0c1c;--surface:#171a2c;--border:#2c3050;--fg:#fff;--muted:#b3b8d4;--accent:#8b6bff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);line-height:1.65;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  .wrap{max-width:760px;margin:0 auto;padding:48px 24px 80px}
+  a{color:var(--accent)}
+  h1{font-size:28px;letter-spacing:-.02em;margin:.2em 0 .4em}
+  h2{font-size:18px;margin:2em 0 .5em}
+  p,li{color:var(--muted)}
+  strong{color:var(--fg)}
+  code{background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:.9em}
+  ul{padding-left:22px}
+  li{margin:.35em 0}
+  .back{display:inline-block;margin-bottom:24px;font-size:14px}
+  .meta{font-size:13px;margin-top:2.5em}
+  hr{border:0;border-top:1px solid var(--border);margin:2.5em 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="./">← Vidalyse</a>
+  <h1>Politique de confidentialité</h1>
+  <p>Dernière mise à jour : 6 septembre 2026. Éditeur / responsable du traitement :
+  Daniel Bernard — <a href="mailto:anton.daniel.bernard@gmail.com">anton.daniel.bernard@gmail.com</a>.</p>
+
+  <h2>Le principe : tout reste chez toi</h2>
+  <p>Vidalyse est une application que tu <strong>installes et exécutes sur ta propre machine</strong>.
+  Il n'y a pas de serveur Vidalyse. Aucune de tes données (vidéos, transcriptions, analyses,
+  identité, clés) n'est envoyée à un serveur nous appartenant. Tout est stocké localement dans
+  <code>%APPDATA%\Vidalyse</code> sur ton ordinateur.</p>
+
+  <h2>Données traitées</h2>
+  <ul>
+    <li><strong>Connexion Google</strong> — nom, adresse e-mail et photo de profil, obtenus via
+    la connexion Google (OAuth, permissions <code>openid</code>, <code>email</code>,
+    <code>profile</code> uniquement). Servent seulement à t'identifier dans l'application.
+    Stockés dans la base locale sur ta machine.</li>
+    <li><strong>Chaîne YouTube (facultatif)</strong> — si tu choisis de connecter ta chaîne,
+    Vidalyse lit <strong>en lecture seule</strong> les informations et statistiques de ta chaîne
+    (vues, abonnés, performances) via l'API officielle YouTube, après ton autorisation explicite.
+    Vidalyse ne peut rien publier, modifier ni supprimer sur YouTube. Ces données restent sur ta
+    machine.</li>
+    <li><strong>Vidéos</strong> — les fichiers que tu importes, ou téléchargés depuis une URL
+    YouTube que tu fournis, sont analysés localement (extraction audio/image, transcription).
+    Ils restent sur ton disque et ne sont partagés avec personne.</li>
+    <li><strong>Clé API Google Gemini (facultatif)</strong> — si tu colles ta propre clé dans
+    les Paramètres, elle est stockée localement et sert uniquement à effectuer <strong>tes</strong>
+    appels à l'API Google Gemini, directement depuis ta machine vers Google.</li>
+  </ul>
+
+  <h2>Ce que Vidalyse ne fait pas</h2>
+  <ul>
+    <li>Aucun serveur Vidalyse ne collecte, ne stocke ni ne reçoit tes données.</li>
+    <li>Aucune revente, aucun partage à des fins publicitaires, aucun traçage.</li>
+    <li>Aucun cookie publicitaire ou de mesure d'audience tiers.</li>
+  </ul>
+
+  <h2>Destinataires</h2>
+  <ul>
+    <li><strong>Google</strong> — pour la connexion (identité), la lecture des données YouTube si
+    tu connectes une chaîne, et — seulement si tu as configuré une clé — les appels à l'API Gemini.</li>
+  </ul>
+
+  <h2>Données des API Google (dont YouTube)</h2>
+  <p>L'utilisation par Vidalyse des informations reçues des API Google respecte la
+  <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener">Google
+  API Services User Data Policy</a>, y compris les exigences <em>Limited Use</em>. Les données lues
+  via l'API YouTube ne sont utilisées que pour les fonctionnalités décrites ici (statistiques,
+  analyse de contenu), jamais pour de la publicité, jamais transmises à un tiers, jamais utilisées
+  pour entraîner un modèle d'IA.</p>
+
+  <h2>Conservation et suppression</h2>
+  <p>Tes données vivent uniquement dans <code>%APPDATA%\Vidalyse</code>. Pour tout effacer :
+  désinstalle l'application et supprime ce dossier. Tu peux révoquer l'accès de Vidalyse à ton
+  compte Google à tout moment sur
+  <a href="https://myaccount.google.com/permissions" target="_blank" rel="noopener">myaccount.google.com/permissions</a>.</p>
+
+  <h2>Tes droits</h2>
+  <p>Conformément au RGPD, tu disposes d'un droit d'accès, de rectification, d'effacement, de
+  limitation et de portabilité. Comme les données ne quittent pas ta machine, tu les contrôles
+  directement ; pour toute question, écris à
+  <a href="mailto:anton.daniel.bernard@gmail.com">anton.daniel.bernard@gmail.com</a>. Tu peux
+  aussi saisir la CNIL (<a href="https://www.cnil.fr" target="_blank" rel="noopener">cnil.fr</a>).</p>
+
+  <hr>
+  <p class="meta"><a href="./cgu.html">Conditions d'utilisation</a> · <a href="./">Retour au site</a></p>
+</div>
+</body>
+</html>
